@@ -1,0 +1,22 @@
+{
+  "python-envs.pythonProjects": [],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.unusedImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "isort.args": [
+    "--profile",
+    "black"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.unusedImports": "explicit",
+      "source.fixAll": "explicit"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "captiv"
+version = "0.1.0"
+description = "Image captioning tool with CLI and GUI interfaces"
+authors = ["Andy Hite <andy@andyhite.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/andyhite/captiv"
+packages = [{include = "captiv", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0.0"
+transformers = ">=4.51.3,<5.0.0"
+torch = ">=2.7.0,<3.0.0"
+Pillow = "^10.0.0"
+typer = {extras = ["all"], version = ">=0.9.0,<1.0.0"}
+click = ">=8.1.7,<9.0.0"
+rich = ">=12.6.0,<13.0.0"
+typing-extensions = "^4.7.0"
+toml = "^0.10.2"
+accelerate = ">=0.30.0"
+gradio = "==4.44.1"
+python-multipart = ">=0.0.9"
+fastapi = ">=0.103.1,<0.104.0"
+uvicorn = ">=0.23.2,<0.24.0"
+jinja2 = ">=3.1.2,<4.0.0"
+loguru = "^0.7.2"
+psutil = "^5.9.0"
+
+[tool.poetry.extras]
+joycaption = ["accelerate"]
+
+[tool.poetry.scripts]
+captiv = "captiv.cli:main"
+
+[tool.poetry.group.dev.dependencies]
+autoflake = "*"
+isort = "^5.12.0"
+pytest = "^8.0.0"
+watchdog = "*"
+watchfiles = "*"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

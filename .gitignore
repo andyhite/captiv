@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Poetry
+poetry.lock
+# Uncomment if you want to ignore the lock file
+# poetry.lock
+
+# Virtualenv
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment files
+.env
+.env.*
+
+# Pytest
+.pytest_cache/
+.coverage
+
+# MyPy
+.mypy_cache/
+
+# macOS
+.DS_Store
+
+# PyCharm/IDEA
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Captions and generated files (optional, uncomment if needed)
+# *.txt
+
+# Logs
+*.log
+
+# System
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Ruff
+.ruff_cache/
