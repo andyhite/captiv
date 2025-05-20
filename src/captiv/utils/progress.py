@@ -60,7 +60,6 @@ class ProgressTracker:
 
             # Calculate percentage and elapsed time
             percent = min(100, int(100 * self.current / self.total))
-            current_time - self.start_time
 
             # Create status message
             if status:

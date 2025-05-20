@@ -1,0 +1,26 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: format
+        name: format
+        entry: make format
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        description: 'Run code formatting'
+
+    -   id: lint
+        name: lint
+        entry: make lint
+        language: system
+        pass_filenames: false
+        stages: [push]
+        description: 'Run linting checks'
+
+    -   id: test
+        name: test
+        entry: make test
+        language: system
+        pass_filenames: false
+        stages: [push]
+        description: 'Run tests'

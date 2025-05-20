@@ -63,11 +63,32 @@ For development or contributing to Captiv:
 git clone https://github.com/yourusername/captiv.git
 cd captiv
 
-# Install in development mode
-pip install -e .
-# or with Poetry
+# Complete setup (recommended)
+make setup
+
+# Or perform individual steps:
+# Install dependencies
 poetry install
+
+# Set up pre-commit hooks
+make setup-hooks
 ```
+
+The `make setup` command performs a complete development environment setup:
+
+1. Verifies Python 3.12+ is installed (errors if not)
+2. Installs Poetry if not already installed
+3. Installs all dependencies (Poetry automatically creates a virtual environment)
+4. Sets up pre-commit hooks
+5. Attempts to check hardware acceleration (CUDA/MPS) availability (continues even if this fails)
+6. Runs linting checks and tests
+
+The pre-commit hooks will automatically:
+
+- Run code formatting (autoflake, isort, ruff format) when you commit
+- Run linting checks and tests when you push
+
+This ensures code quality standards are maintained throughout development.
 
 ## Usage
 
@@ -297,14 +318,19 @@ poetry install
 **Solution:**
 
 1. Verify CUDA installation:
+
    ```bash
    nvidia-smi
    ```
+
 2. Ensure PyTorch is installed with CUDA support:
+
    ```bash
    python -c "import torch; print(torch.cuda.is_available())"
    ```
+
 3. Reinstall PyTorch with CUDA support:
+
    ```bash
    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
    ```
@@ -316,9 +342,11 @@ poetry install
 **Solution:**
 
 1. Use a smaller model variant:
+
    ```bash
    captiv caption generate image.jpg --model blip --variant base
    ```
+
 2. Reduce batch size or image resolution in your code
 3. Close other GPU-intensive applications
 
@@ -345,6 +373,7 @@ poetry install
 1. Free up disk space
 2. Use smaller model variants
 3. Set a custom cache directory with more space:
+
    ```bash
    export TRANSFORMERS_CACHE="/path/with/more/space"
    ```
@@ -375,12 +404,15 @@ pip install gradio==4.44.1
 **Solution:**
 
 1. Configure the GUI to listen on all interfaces:
+
    ```bash
    captiv config set gui.host "0.0.0.0"
    captiv gui launch
    ```
+
 2. Ensure your firewall allows connections to the port (default: 7860)
 3. Use the `--share` option for a public URL:
+
    ```bash
    captiv gui launch --share
    ```

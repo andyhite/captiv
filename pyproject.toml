@@ -36,6 +36,7 @@ captiv = "captiv.cli:main"
 [tool.poetry.group.dev.dependencies]
 autoflake = "*"
 isort = "^5.12.0"
+pre-commit = "^3.5.0"
 pytest = "^8.0.0"
 watchdog = "*"
 watchfiles = "*"

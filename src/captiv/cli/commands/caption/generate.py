@@ -26,7 +26,6 @@ from captiv.cli.options import (  # JoyCaption-specific options; Extra options f
     ExcludeTextOption,
     FocusImportantElementsOption,
     GuidanceScaleOption,
-    ImagePathArgument,
     IncludeAgesOption,
     IncludeCameraAngleOption,
     IncludeCameraDetailsOption,
