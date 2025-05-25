@@ -47,6 +47,20 @@ The workflow automatically:
 - Installs all project dependencies including dev dependencies
 - Uses the latest versions of GitHub Actions
 
+### Local Development vs CI
+
+**Local Development:**
+
+- Pre-commit hooks only run code formatting on commit
+- Linting and testing are handled by the GitHub workflow
+- This provides fast local commits while ensuring quality in CI
+
+**GitHub Workflow:**
+
+- Comprehensive linting, formatting checks, and testing
+- Coverage reporting and test analytics
+- Runs on multiple Python versions
+
 ### Requirements
 
 - Python 3.12+ (as specified in `pyproject.toml`)

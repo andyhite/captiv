@@ -17,8 +17,8 @@ class RunPodDefaults(ConfigSection):
 
     # Pod Configuration
     default_gpu_type: str = "NVIDIA RTX A4000"
-    container_disk_size: int = 50  # GB
-    volume_disk_size: int = 50  # GB
+    container_disk_size: int = 20  # GB
+    volume_disk_size: int = 20  # GB
     ports: str = "7860/http,8888/http,22/tcp"
 
     # Pod Management
@@ -28,7 +28,6 @@ class RunPodDefaults(ConfigSection):
     startup_timeout: int = 600  # seconds
 
     # Model Configuration
-    default_model_variant: str = "joycaption-beta-one"
     enable_model_caching: bool = True
 
     # Network Configuration

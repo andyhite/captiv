@@ -124,7 +124,7 @@ check-poetry:
 
 setup-hooks: install
 	@echo "Setting up pre-commit hooks..."
-	@poetry run pre-commit install -t pre-commit -t pre-push
+	@poetry run pre-commit install -t pre-commit
 
 check-acceleration:
 	@echo "Checking hardware acceleration..."
