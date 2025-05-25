@@ -1,130 +1,123 @@
-import os
-import tempfile
+"""Tests for ImageFileManager service."""
+
+from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from captiv.services.exceptions import (
-    DirectoryNotFoundError,
-    FileNotFoundError,
-    UnsupportedFileTypeError,
-)
+from captiv.services.file_manager import FileManager
 from captiv.services.image_file_manager import ImageFileManager
 
 
 class TestImageFileManager:
-    def setup_method(self):
-        self.manager = ImageFileManager()
+    """Test cases for ImageFileManager."""
 
-    def test_get_supported_extensions(self):
-        exts = self.manager.get_supported_extensions()
-        assert isinstance(exts, (tuple, set))
-        assert ".jpg" in exts
-        assert ".png" in exts
+    @pytest.fixture
+    def mock_file_manager(self):
+        """Create a mock FileManager."""
+        return MagicMock(spec=FileManager)
 
-    def test_validate_image_file_supported(self):
-        for ext in self.manager.get_supported_extensions():
-            fname = f"test{ext}"
-            with open(fname, "w") as f:
-                f.write("dummy")
-            try:
-                assert self.manager.validate_image_file(fname) is None
-            finally:
-                os.remove(fname)
+    @pytest.fixture
+    def image_file_manager(self, mock_file_manager):
+        """Create an ImageFileManager instance with mock FileManager."""
+        return ImageFileManager(mock_file_manager)
 
-    def test_validate_image_file_unsupported(self):
-        with pytest.raises(UnsupportedFileTypeError):
-            self.manager.validate_image_file("test.txt")
+    def test_initialization(self, mock_file_manager):
+        """Test ImageFileManager initialization."""
+        manager = ImageFileManager(mock_file_manager)
+        assert manager.file_manager is mock_file_manager
 
-    def test_validate_image_file_not_found(self):
-        with pytest.raises(FileNotFoundError):
-            self.manager.validate_image_file("nonexistent.jpg")
+    def test_supported_extensions(self):
+        """Test that SUPPORTED_EXTENSIONS contains expected image formats."""
+        expected_extensions = {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".bmp",
+            ".tiff",
+            ".webp",
+        }
+        assert expected_extensions == ImageFileManager.SUPPORTED_EXTENSIONS
 
-    def test_list_images_with_captions_empty_dir(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            result = self.manager.list_images_with_captions(tmpdir)
-            assert isinstance(result, list)
-            assert len(result) == 0
+    def test_list_image_files(self, image_file_manager, mock_file_manager):
+        """Test listing image files in a directory."""
+        test_directory = Path("/test/directory")
+        expected_files = [
+            Path("/test/directory/image1.jpg"),
+            Path("/test/directory/image2.png"),
+            Path("/test/directory/image3.gif"),
+        ]
+        mock_file_manager.list_files.return_value = expected_files
 
-    def test_list_images_with_captions_nonexistent_dir(self):
-        with pytest.raises(DirectoryNotFoundError):
-            self.manager.list_images_with_captions("/nonexistent/directory")
+        result = image_file_manager.list_image_files(test_directory)
 
-    def test_list_images_with_captions(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create some image files
-            for i, ext in enumerate(list(self.manager.get_supported_extensions())[:3]):
-                img_path = os.path.join(tmpdir, f"image{i}{ext}")
-                with open(img_path, "w") as f:
-                    f.write("dummy")
+        assert result == expected_files
+        mock_file_manager.list_files.assert_called_once_with(
+            test_directory, ImageFileManager.SUPPORTED_EXTENSIONS
+        )
 
-                # Add captions to some images
-                if i % 2 == 0:
-                    cap_path = os.path.join(tmpdir, f"image{i}.txt")
-                    with open(cap_path, "w") as f:
-                        f.write(f"Caption for image{i}")
+    def test_list_image_files_empty_directory(
+        self, image_file_manager, mock_file_manager
+    ):
+        """Test listing image files in an empty directory."""
+        test_directory = Path("/empty/directory")
+        mock_file_manager.list_files.return_value = []
 
-            result = self.manager.list_images_with_captions(tmpdir)
-            assert isinstance(result, list)
-            assert len(result) == 3
+        result = image_file_manager.list_image_files(test_directory)
 
-            # Check that images with captions have them
-            for i, (name, caption) in enumerate(sorted(result)):
-                if i % 2 == 0:
-                    assert caption is not None
-                    assert f"Caption for image{i}" == caption
-                else:
-                    assert caption is None
+        assert result == []
+        mock_file_manager.list_files.assert_called_once_with(
+            test_directory, ImageFileManager.SUPPORTED_EXTENSIONS
+        )
 
-    def test_write_caption(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            img_path = os.path.join(tmpdir, "image.jpg")
-            cap_path = os.path.join(tmpdir, "image.txt")
+    def test_list_image_files_with_pathlib_path(
+        self, image_file_manager, mock_file_manager
+    ):
+        """Test listing image files with Path object."""
+        test_directory = Path("/test/path/object")
+        expected_files = [Path("/test/path/object/photo.jpeg")]
+        mock_file_manager.list_files.return_value = expected_files
 
-            # Create a dummy image file
-            with open(img_path, "w") as f:
-                f.write("dummy")
+        result = image_file_manager.list_image_files(test_directory)
 
-            # Write caption
-            self.manager.write_caption(img_path, "Test caption")
+        assert result == expected_files
+        mock_file_manager.list_files.assert_called_once_with(
+            test_directory, ImageFileManager.SUPPORTED_EXTENSIONS
+        )
 
-            # Check caption file exists and content
-            assert os.path.exists(cap_path)
-            with open(cap_path) as f:
-                assert f.read().strip() == "Test caption"
+    def test_list_image_files_delegates_to_file_manager(
+        self, image_file_manager, mock_file_manager
+    ):
+        """Test that list_image_files properly delegates to FileManager."""
+        test_directory = Path("/delegation/test")
 
-    def test_write_caption_unsupported_file(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            txt_path = os.path.join(tmpdir, "document.txt")
+        image_file_manager.list_image_files(test_directory)
 
-            # Create a dummy text file
-            with open(txt_path, "w") as f:
-                f.write("dummy")
+        mock_file_manager.list_files.assert_called_once_with(
+            test_directory, ImageFileManager.SUPPORTED_EXTENSIONS
+        )
 
-            # Try to write caption to a non-image file
-            with pytest.raises(UnsupportedFileTypeError):
-                self.manager.write_caption(txt_path, "Test caption")
+    def test_supported_extensions_immutable(self):
+        """Test that SUPPORTED_EXTENSIONS is a set (immutable for our purposes)."""
+        extensions = ImageFileManager.SUPPORTED_EXTENSIONS
+        assert isinstance(extensions, set)
 
-    def test_read_caption(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            img_path = os.path.join(tmpdir, "image.jpg")
-            cap_path = os.path.join(tmpdir, "image.txt")
+        assert ".jpg" in extensions
+        assert ".png" in extensions
+        assert ".gif" in extensions
 
-            # Create a dummy image file
-            with open(img_path, "w") as f:
-                f.write("dummy")
+    def test_class_attribute_access(self):
+        """Test accessing SUPPORTED_EXTENSIONS as class attribute."""
+        extensions = ImageFileManager.SUPPORTED_EXTENSIONS
+        assert len(extensions) == 7
 
-            # Create a caption file
-            with open(cap_path, "w") as f:
-                f.write("Test caption")
+    def test_instance_method_coverage(self, mock_file_manager):
+        """Test complete method coverage including __init__."""
+        manager = ImageFileManager(mock_file_manager)
 
-            # Read caption
-            caption = self.manager.read_caption(img_path)
-            assert caption == "Test caption"
+        test_dir = Path("/test")
+        mock_file_manager.list_files.return_value = []
+        result = manager.list_image_files(test_dir)
 
-            # Test reading from an image without a caption
-            img2_path = os.path.join(tmpdir, "image2.jpg")
-            with open(img2_path, "w") as f:
-                f.write("dummy")
-
-            caption = self.manager.read_caption(img2_path)
-            assert caption is None
+        assert result == []

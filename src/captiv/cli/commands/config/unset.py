@@ -4,19 +4,23 @@ Unset configuration command for the Captiv CLI.
 This module provides the command logic for removing configuration values.
 """
 
-import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
-from captiv import config
+import typer
+
 from captiv.cli.error_handling import handle_cli_errors
 from captiv.cli.options import ConfigFileOption
+from captiv.services.config_manager import ConfigManager
+
+KeyPathArgument = Annotated[
+    str,
+    typer.Argument(..., help="Configuration key path in format section.key"),
+]
 
 
 @handle_cli_errors
 def command(
-    key_path: Annotated[
-        str, typer.Argument(..., help="Configuration key path in format section.key")
-    ],
+    key_path: KeyPathArgument,
     config_file: ConfigFileOption = None,
 ) -> None:
     """Remove a configuration value, resetting it to the default."""
@@ -25,37 +29,24 @@ def command(
         typer.echo("Run 'captiv config list' to see available configuration options.")
         return
 
-    # Parse the section and key
+    config_manager = ConfigManager(config_file)
     section, key = key_path.split(".", 1)
 
-    # Read the current configuration
-    cfg = config.read_config(config_file)
+    try:
+        default_value = config_manager._default_config
+        if hasattr(default_value, section):
+            section_obj = getattr(default_value, section)
+            if hasattr(section_obj, key):
+                default_val = getattr(section_obj, key)
+            else:
+                default_val = "default"
+        else:
+            default_val = "default"
 
-    # Check if the section exists
-    if not hasattr(cfg, section):
-        typer.echo(f"Unknown configuration section: {section}")
-        typer.echo("Run 'captiv config list' to see available configuration sections.")
-        return
-
-    # Check if the key exists in the section
-    section_obj = getattr(cfg, section)
-    if not hasattr(section_obj, key):
-        typer.echo(f"Unknown configuration key: {key_path}")
-        typer.echo("Run 'captiv config list' to see available configuration options.")
-        return
-
-    # Get the default value for this key
-    default_section = getattr(config.DEFAULT_CONFIG, section)
-    if hasattr(default_section, key):
-        default_value = getattr(default_section, key)
-
-        # Reset to the default value
-        setattr(section_obj, key, default_value)
-
-        # Write the updated configuration
-        config.write_config(cfg, config_file)
+        config_manager.unset_config_value(section, key)
         typer.echo(
-            f"Configuration value {key_path} has been reset to default: {default_value}"
+            f"Configuration value {key_path} has been reset to default: {default_val}"
         )
-    else:
-        typer.echo(f"Could not determine default value for {key_path}")
+    except ValueError as e:
+        typer.echo(f"Error: {e}")
+        typer.echo("Run 'captiv config list' to see available configuration options.")

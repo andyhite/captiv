@@ -5,51 +5,54 @@ This module provides the command logic for listing configuration values.
 """
 
 import json
-from typing import Optional
+from typing import Annotated
 
 import typer
 
-from captiv import config
 from captiv.cli.error_handling import handle_cli_errors
 from captiv.cli.options import ConfigFileOption
+from captiv.services.config_manager import ConfigManager
+
+SectionArgument = Annotated[
+    str | None,
+    typer.Argument(
+        help="Configuration section to list. If not provided, lists all sections."
+    ),
+]
+
+JsonFormatOption = Annotated[
+    bool,
+    typer.Option("--json", help="Output in JSON format"),
+]
 
 
 @handle_cli_errors
 def command(
-    section: Optional[str] = typer.Argument(
-        None, help="Configuration section to list. If not provided, lists all sections."
-    ),
+    section: SectionArgument = None,
     config_file: ConfigFileOption = None,
-    json_format: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    json_format: JsonFormatOption = False,
 ) -> None:
     """List configuration values for a section or the entire configuration."""
-    cfg = config.list_config(config_file)
+    config_manager = ConfigManager(config_file)
+
+    cfg = config_manager.get_config()
 
     if section:
-        # List only the specified section
         if section in cfg:
             section_values = cfg[section]
 
             if json_format:
-                # Output as JSON
                 typer.echo(json.dumps({section: section_values}, indent=2))
             else:
-                # Pretty print the section
-                typer.echo(f"Configuration section: [{section}]")
                 for key, value in section_values.items():
-                    typer.echo(f"  {key} = {value}")
+                    typer.echo(f"{key} = {value}")
         else:
             typer.echo(f"Unknown configuration section: {section}")
             typer.echo("Available sections: " + ", ".join(cfg.keys()))
     else:
-        # List all sections
         if json_format:
-            # Output as JSON
             typer.echo(json.dumps(cfg, indent=2))
         else:
-            # Pretty print the configuration
-            typer.echo("Current configuration:")
-
             for section_name, section_values in cfg.items():
                 typer.echo(f"\n[{section_name}]")
                 for key, value in section_values.items():

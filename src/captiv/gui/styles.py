@@ -12,7 +12,7 @@ css = """
 .main .body .gallery .gallery-container {
   height: 100%;
   overflow-y: auto !important;
-  scrollbar-color: #888 transparent;
+  scrollbar-color:
   scrollbar-width: thin;
 }
 
@@ -25,7 +25,7 @@ css = """
 }
 
 .main .body .gallery .gallery-container::-webkit-scrollbar-thumb {
-  background-color: #888;
+  background-color:
   border-radius: 4px;
 }
 
@@ -35,5 +35,25 @@ css = """
 
 .main .body .gallery .gallery-container .grid-wrap {
   overflow: visible;
+}
+
+.accordion {
+  padding: 0;
+}
+
+.accordion > button {
+  padding: var(--block-padding);
+}
+
+.accordion .form {
+  border: none;
+}
+
+.accordion .form .field {
+  border: none;
+}
+
+.accordion fieldset {
+  padding: 0 12px;
 }
 """

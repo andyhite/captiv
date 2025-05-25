@@ -1,44 +1,42 @@
-"""
-Caption management section for the Captiv GUI.
-"""
+"""Caption management section for the Captiv GUI."""
 
 import os
 import traceback
-from typing import Tuple
+from pathlib import Path
 
 import gradio as gr
 from loguru import logger
 
-from captiv.services.image_file_manager import ImageFileManager
+from captiv.services import CaptionFileManager
 from captiv.utils.error_handling import EnhancedError
 
 
 class CaptionSection:
     """Caption management section for viewing and editing captions."""
 
-    def __init__(self, file_manager: ImageFileManager):
-        """Initialize the caption section.
+    def __init__(self, caption_manager: CaptionFileManager):
+        """
+        Initialize the caption section.
 
         Args:
-            file_manager: The image file manager instance
+            caption_manager: The caption file manager instance
         """
-        self.file_manager = file_manager
+        self.caption_manager = caption_manager
         logger.info("CaptionSection initialized.")
 
-        # UI components
         self.caption_textbox = None
-        self.save_status = None
         self.save_caption_btn = None
         self.generate_caption_btn = None
-        self.caption_progress = None
 
     def create_section(
         self,
-    ) -> Tuple[gr.Textbox, gr.Textbox, gr.Button, gr.Button, gr.Textbox]:
-        """Create the caption management section UI components.
+    ) -> tuple[gr.Textbox, gr.Button, gr.Button]:
+        """
+        Create the caption management section UI components.
 
         Returns:
-            Tuple containing the caption textbox, status textbox, save button, generate button, and progress indicator
+            Tuple containing the caption textbox, status textbox, save button,
+            and generate button
         """
         logger.debug("Creating caption section UI components.")
         self.caption_textbox = gr.Textbox(
@@ -48,37 +46,20 @@ class CaptionSection:
             interactive=True,
         )
 
-        # Keep a hidden status textbox for backward compatibility
-        self.save_status = gr.Textbox(
-            label="Status",
-            interactive=False,
-            visible=False,
-            elem_id="save_status",
-        )
-
         with gr.Row():
             self.save_caption_btn = gr.Button("Save caption", scale=1)
             self.generate_caption_btn = gr.Button("Generate caption", scale=1)
 
-        # Add a progress indicator for caption generation
-        self.caption_progress = gr.Textbox(
-            label="Progress",
-            value="Ready to generate caption",
-            interactive=False,
-            visible=True,
-        )
-
         logger.debug("Caption section UI components created.")
         return (
             self.caption_textbox,
-            self.save_status,
             self.save_caption_btn,
             self.generate_caption_btn,
-            self.caption_progress,
         )
 
     def on_image_select(self, image_path: str) -> str:
-        """Handle image selection event.
+        """
+        Handle image selection event.
 
         Args:
             image_path: The selected image path
@@ -87,7 +68,7 @@ class CaptionSection:
             The caption for the selected image
         """
         logger.debug(
-            f"Image selection changed in CaptionSection. Selected image path: {image_path}"
+            f"Image selection changed in CaptionSection. Selected image path: {image_path}"  # noqa: E501
         )
         if not image_path:
             logger.warning(
@@ -95,14 +76,12 @@ class CaptionSection:
             )
             return ""
 
-        # Check if the path is a directory and not a file
         if os.path.isdir(image_path):
             logger.warning(f"Selected path is a directory, not an image: {image_path}")
             return ""
         try:
-            # Get the caption for the selected image
             logger.debug(f"Reading caption for image: {image_path}")
-            caption_text = self.file_manager.read_caption(image_path)
+            caption_text = self.caption_manager.read_caption(Path(image_path))
             caption_to_display = caption_text or ""
             logger.info(f"Caption for '{image_path}': '{caption_to_display}'")
             return caption_to_display
@@ -117,7 +96,8 @@ class CaptionSection:
             return ""
 
     def on_save_caption(self, image_path: str, caption: str) -> str:
-        """Handle save caption button click.
+        """
+        Handle save caption button click.
 
         Args:
             image_path: The image path to save the caption for
@@ -127,7 +107,7 @@ class CaptionSection:
             Status message (for backward compatibility)
         """
         logger.debug(
-            f"Save caption triggered in CaptionSection. Image path: {image_path}, Caption: '{caption}'"
+            f"Save caption triggered in CaptionSection. Image path: {image_path}, Caption: '{caption}'"  # noqa: E501
         )
         if not image_path:
             logger.warning(
@@ -138,7 +118,7 @@ class CaptionSection:
 
         try:
             logger.info(f"Saving caption for image: {image_path}")
-            self.file_manager.write_caption(image_path, caption)
+            self.caption_manager.write_caption(Path(image_path), caption)
             success_msg = f"Caption saved for {os.path.basename(image_path)}"
             logger.info(success_msg)
             gr.Info(success_msg)
@@ -149,7 +129,6 @@ class CaptionSection:
             gr.Error("Error: Image file not found.")
             return "Error: Image file not found."
         except EnhancedError as e:
-            # For enhanced errors, show the detailed message
             error_msg = f"Error saving caption: {e.message}"
             if e.troubleshooting_tips:
                 error_details = "\n".join(f"- {tip}" for tip in e.troubleshooting_tips)

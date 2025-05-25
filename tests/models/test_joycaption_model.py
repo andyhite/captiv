@@ -1,342 +1,323 @@
-import os
-import sys
-import unittest
-from unittest.mock import Mock, patch
+"""Tests for JoyCaption model functionality."""
+
+from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
+from PIL import Image
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-from src.captiv.models.joycaption_model import JoyCaptionModel, is_accelerate_available
-
-# Check if accelerate is installed for test skipping
-ACCELERATE_AVAILABLE = is_accelerate_available()
+from captiv.models.joycaption_model import JoyCaptionModel
 
 
-class TestJoyCaptionModel(unittest.TestCase):
-    """
-    Unit tests for the JoyCaptionModel class.
-    These tests mock the JoyCaption components to avoid actual model loading.
-    Tests are skipped if the accelerate package is not installed.
-    """
+@pytest.fixture
+def mock_joycaption_model():
+    """Create a mock JoyCaption model instance for testing."""
+    with (
+        patch("torch.cuda.is_available", return_value=False),
+        patch("torch.backends.mps.is_available", return_value=False),
+        patch.object(JoyCaptionModel, "load_model") as mock_load_model,
+        patch.object(JoyCaptionModel, "load_processor") as mock_load_processor,
+        patch.object(JoyCaptionModel, "load_tokenizer") as mock_load_tokenizer,
+    ):
+        mock_model_instance = MagicMock()
+        mock_model_instance.to.return_value = mock_model_instance
+        mock_load_model.return_value = mock_model_instance
 
-    def setUp(self):
-        """
-        Set up the test environment with mocked components.
-        """
-        # Create patches for the test
-        self.patcher1 = patch(
-            "transformers.models.auto.processing_auto.AutoProcessor.from_pretrained"
-        )
-        self.patcher2 = patch(
-            "transformers.models.llava.modeling_llava.LlavaForConditionalGeneration.from_pretrained"
-        )
-        self.patcher3 = patch.dict(
-            "src.captiv.models.joycaption_model.JoyCaptionModel.VARIANTS",
-            {
-                "fancyfeast/llama-joycaption-alpha-two-hf-llava": {
-                    "huggingface_id": "fancyfeast/llama-joycaption-alpha-two-hf-llava",
-                    "description": "JoyCaption model (alpha two version) for image captioning",
-                    "default_mode": "default",
-                },
-                "fancyfeast/llama-joycaption-beta-one-hf-llava": {
-                    "huggingface_id": "fancyfeast/llama-joycaption-beta-one-hf-llava",
-                    "description": "JoyCaption model (beta one version) for image captioning",
-                    "default_mode": "default",
-                },
-            },
-        )
+        mock_processor = MagicMock()
+        mock_processor.apply_chat_template.return_value = "formatted_chat"
+        mock_processor.tokenizer.decode.return_value = "Generated caption"
+        mock_load_processor.return_value = mock_processor
 
-        # Start the patches
-        self.mock_processor_from_pretrained = self.patcher1.start()
-        self.mock_llava_from_pretrained = self.patcher2.start()
-        self.patcher3.start()
+        mock_tokenizer = MagicMock()
+        mock_load_tokenizer.return_value = mock_tokenizer
 
-        # Add cleanup to stop patches after tests
-        self.addCleanup(self.patcher1.stop)
-        self.addCleanup(self.patcher2.stop)
-        self.addCleanup(self.patcher3.stop)
+        model = JoyCaptionModel("joycaption-beta-one")
+        yield model
 
-        # Use the GPU mocking utilities from tests.utils.gpu_mocks
-        # This is handled by the mock_gpu and mock_accelerate_package fixtures
 
-        # Mock processor
-        self.mock_processor = Mock()
-        self.mock_processor.apply_chat_template = Mock(return_value="chat template")
-        self.mock_processor.__call__ = Mock(return_value=Mock(to=Mock(return_value={})))
-        self.mock_processor.tokenizer = Mock()
-        self.mock_processor.tokenizer.decode = Mock(
-            return_value="JoyCaption would generate a caption here"
-        )
-        self.mock_processor_from_pretrained.return_value = self.mock_processor
+class TestJoyCaptionModel:
+    """Test JoyCaption model functionality."""
 
-        # Mock model
-        self.mock_model = Mock()
-        self.mock_model.generate = Mock(return_value=[torch.tensor([1, 2, 3, 4])])
-        self.mock_model.to.return_value = self.mock_model
-        self.mock_model.eval = Mock()
-        self.mock_llava_from_pretrained.return_value = self.mock_model
+    def test_create_chat_with_prompt(self, mock_joycaption_model):
+        """Test creating chat conversation format with prompt."""
+        prompt = "Describe this image in detail"
+        result = mock_joycaption_model.create_chat(prompt)
 
-        # Create a real test image instead of a mock
-        from tests.models.test_utils import create_test_image, get_test_image_path
+        mock_joycaption_model._processor.apply_chat_template.assert_called_once()
+        call_args = mock_joycaption_model._processor.apply_chat_template.call_args
 
-        self.test_image = create_test_image()
-        self.test_image_path = get_test_image_path()
+        convo = call_args[0][0]
+        assert len(convo) == 2
+        assert convo[0]["role"] == "system"
+        assert convo[0]["content"] == "You are a helpful image captioner."
+        assert convo[1]["role"] == "user"
+        assert convo[1]["content"] == prompt
 
-        # Initialize the model with mocks in place
-        # The GPU mocking will be handled by the fixture
-        self.joycaption_model = JoyCaptionModel(
-            model_variant_or_path="fancyfeast/llama-joycaption-alpha-two-hf-llava"
-        )
+        assert call_args[1]["tokenize"] is False
+        assert call_args[1]["add_generation_prompt"] is True
 
-        # Manually set variant_key and default_mode_key for testing purposes
-        if self.joycaption_model.variant_key is None:
-            self.joycaption_model.variant_key = (
-                "fancyfeast/llama-joycaption-alpha-two-hf-llava"
-            )
-        if self.joycaption_model.default_mode_key is None:
-            self.joycaption_model.default_mode_key = "default"
+        assert result == "formatted_chat"
 
-    @pytest.fixture(autouse=True)
-    def setup_gpu_mocks(self, mock_gpu, mock_accelerate_package):
-        """
-        Set up GPU mocks for all tests in this class.
-        This fixture is automatically used for all test methods.
-        """
-        # This fixture automatically applies the GPU mocks
-        # No need to do anything here, the mocks are applied by the fixture parameters
+    def test_create_chat_with_none_prompt(self, mock_joycaption_model):
+        """Test creating chat conversation format with None prompt."""
+        mock_joycaption_model.create_chat(None)
 
-    def test_initialization(self):
-        """
-        Test that the JoyCaptionModel initializes correctly with the expected values.
-        """
-        self.assertEqual(
-            self.joycaption_model.model_name_or_path,
-            "fancyfeast/llama-joycaption-alpha-two-hf-llava",
-        )
-        self.assertEqual(
-            self.joycaption_model.variant_key,
-            "fancyfeast/llama-joycaption-alpha-two-hf-llava",
-        )
-        self.assertEqual(self.joycaption_model.default_mode_key, "default")
+        mock_joycaption_model._processor.apply_chat_template.assert_called_once()
+        call_args = mock_joycaption_model._processor.apply_chat_template.call_args
 
-    def test_caption_image_with_pil_image_no_prompt(self):
-        """
-        Test captioning with a PIL image and no prompt.
-        """
-        # Call the method under test
-        caption = self.joycaption_model.caption_image(self.test_image)
+        convo = call_args[0][0]
+        assert convo[1]["content"] is None
 
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
+    def test_process_inputs_calls_parent_with_chat(self, mock_joycaption_model):
+        """Test that process_inputs calls parent method with chat formatting."""
+        image = Image.new("RGB", (100, 100), color="red")
+        prompt = "Test prompt"
 
-    def test_caption_image_with_prompt(self):
-        """
-        Test captioning with a custom prompt.
-        """
-        # Call the method with a custom prompt
-        caption = self.joycaption_model.caption_image(
-            self.test_image, prompt="a detailed description of the image"
+        with patch(
+            "captiv.models.base_model.BaseModel.process_inputs"
+        ) as mock_parent_process:
+            mock_pixel_values = MagicMock()
+            mock_inputs = {"input_ids": MagicMock(), "pixel_values": mock_pixel_values}
+            mock_parent_process.return_value = mock_inputs
+
+            mock_joycaption_model._dtype = None
+
+            result = mock_joycaption_model.process_inputs(image, prompt)
+
+            mock_parent_process.assert_called_once_with(image, "formatted_chat")
+
+            assert result == mock_inputs
+
+    def test_generate_ids_excludes_input_tokens(self, mock_joycaption_model):
+        """Test that generate_ids excludes input tokens from output."""
+        mock_input_ids = MagicMock()
+        mock_input_ids.shape = (1, 5)
+        mock_inputs = {"input_ids": mock_input_ids}
+
+        with patch(
+            "captiv.models.base_model.BaseModel.generate_ids"
+        ) as mock_parent_generate:
+            mock_generated = MagicMock()
+            mock_generated.__getitem__ = MagicMock(return_value="sliced_result")
+            mock_parent_generate.return_value = mock_generated
+
+            result = mock_joycaption_model.generate_ids(mock_inputs, max_new_tokens=50)
+
+            mock_parent_generate.assert_called_once_with(mock_inputs, max_new_tokens=50)
+
+            mock_generated.__getitem__.assert_called_once_with(slice(5, None))
+            assert result == "sliced_result"
+
+    def test_decode_caption_uses_processor_tokenizer(self, mock_joycaption_model):
+        """Test that decode_caption uses processor's tokenizer with specific
+        settings."""
+        mock_generated_ids = MagicMock()
+
+        result = mock_joycaption_model.decode_caption(mock_generated_ids)
+
+        mock_joycaption_model._processor.tokenizer.decode.assert_called_once_with(
+            mock_generated_ids,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
         )
 
-        # Verify the result contains the expected placeholder text and prompt
-        self.assertIn("JoyCaption would generate a caption here", caption)
-        self.assertIn("a detailed description of the image", caption)
+        assert result == "Generated caption"
 
-    def test_caption_image_with_mode_key(self):
-        """
-        Test captioning with a mode key instead of a direct prompt.
-        """
-        # Call the method with a mode key
-        caption = self.joycaption_model.caption_image(
-            self.test_image, prompt="descriptive_formal"
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-        self.assertIn("Generate a formal, detailed description of this image", caption)
-
-    def test_caption_image_with_generation_params(self):
-        """
-        Test captioning with custom generation parameters.
-        """
-        # Call the method with custom generation parameters
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            max_length=50,
-            min_length=5,
-            num_beams=5,
-            temperature=0.8,
-            top_k=30,
-            top_p=0.95,
-            repetition_penalty=1.2,
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-
-    def test_caption_image_with_joycaption_specific_params(self):
-        """
-        Test captioning with JoyCaption-specific parameters.
-        """
-        # Call the method with JoyCaption-specific parameters
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            guidance_scale=7.5,
-            quality_level="high",
-            negative_prompt="blurry, low quality",
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-
-    def test_caption_image_with_word_count_and_length(self):
-        """
-        Test captioning with word count and length parameters.
-        Note: With the simplified MODES structure, word_count and length parameters
-        are no longer used to modify the prompt text.
-        """
-        # Call the method with word count parameter
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            prompt="descriptive_formal",
-            word_count=50,
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-        # Verify it's using the standard prompt text
-        self.assertIn(
-            "Generate a formal, detailed description of this image",
-            caption,
-        )
-
-        # Call the method with length parameter
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            prompt="descriptive_formal",
-            length="short",
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-        # Verify it's using the standard prompt text
-        self.assertIn(
-            "Generate a formal, detailed description of this image",
-            caption,
-        )
-
-    def test_caption_image_with_character_name(self):
-        """
-        Test captioning with character name parameter.
-        """
-        # Call the method with character name parameter
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            character_name="John",
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-
-    def test_caption_image_with_extra_options(self):
-        """
-        Test captioning with extra options.
-        """
-        # Call the method with various extra options
-        caption = self.joycaption_model.caption_image(
-            self.test_image,
-            include_lighting=True,
-            include_camera_angle=True,
-            exclude_text=True,
-            keep_pg=True,
-        )
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-
-    def test_caption_image_with_file_path(self):
-        """
-        Test captioning with a file path instead of a PIL image.
-        """
-        # Call the method with a real file path
-        caption = self.joycaption_model.caption_image(self.test_image_path)
-
-        # Verify the result contains the expected placeholder text
-        self.assertIn("JoyCaption would generate a caption here", caption)
-
-    def test_caption_image_with_file_not_found(self):
-        """
-        Test captioning with a non-existent file path.
-        Should raise FileNotFoundError.
-        """
-        with self.assertRaises(FileNotFoundError):
-            self.joycaption_model.caption_image(
-                "nonexistent_image_that_does_not_exist.jpg"
-            )
-
-    def test_get_modes(self):
-        """
-        Test that get_modes returns the expected modes.
-        """
-        modes = JoyCaptionModel.get_modes()
-        self.assertIn("default", modes)
-        self.assertIn("descriptive_formal", modes)
-        self.assertIn("descriptive_casual", modes)
-        self.assertIn("creative", modes)
-        self.assertIn("technical", modes)
-        self.assertIn("poetic", modes)
-        self.assertIn("storytelling", modes)
-        self.assertIn("emotional", modes)
-        self.assertIn("humorous", modes)
-        self.assertIn("seo_friendly", modes)
-        self.assertIn("accessibility", modes)
-        self.assertIn("concise", modes)
-        self.assertIn("detailed", modes)
-
-        # Verify the simplified string->string structure
-        self.assertEqual(modes["default"], "Describe this image.")
-        self.assertEqual(
-            modes["descriptive_formal"],
-            "Generate a formal, detailed description of this image",
-        )
-        self.assertEqual(
-            modes["descriptive_casual"],
-            "Write a descriptive caption for this image in a casual tone.",
-        )
-
-    def test_caption_image_with_invalid_input(self):
-        """
-        Test captioning with invalid image input (should raise ValueError).
-        """
-        with self.assertRaises(ValueError):
-            self.joycaption_model.caption_image(12345)  # type: ignore  # Not a path or PIL.Image.Image
-
-    def test_get_variants(self):
-        """
-        Test that get_variants returns the expected variants.
-        """
+    def test_model_variants_configuration(self):
+        """Test that JoyCaption model has correct variants configured."""
         variants = JoyCaptionModel.get_variants()
-        self.assertEqual(
-            variants["fancyfeast/llama-joycaption-alpha-two-hf-llava"][
-                "huggingface_id"
-            ],
-            "fancyfeast/llama-joycaption-alpha-two-hf-llava",
-        )
-        self.assertEqual(
-            variants["fancyfeast/llama-joycaption-beta-one-hf-llava"]["huggingface_id"],
-            "fancyfeast/llama-joycaption-beta-one-hf-llava",
-        )
-        self.assertEqual(
-            variants["fancyfeast/llama-joycaption-alpha-two-hf-llava"]["description"],
-            "JoyCaption model (alpha two version) for image captioning",
-        )
-        self.assertEqual(
-            variants["fancyfeast/llama-joycaption-beta-one-hf-llava"]["description"],
-            "JoyCaption model (beta one version) for image captioning",
-        )
 
+        assert "joycaption-alpha-two" in variants
+        assert "joycaption-beta-one" in variants
 
-if __name__ == "__main__":
-    unittest.main()
+        alpha_variant = variants["joycaption-alpha-two"]
+        assert (
+            alpha_variant["huggingface_id"]
+            == "fancyfeast/llama-joycaption-alpha-two-hf-llava"
+        )
+        assert (
+            alpha_variant.get("description")
+            == "JoyCaption model (alpha two version) for image captioning"
+        )
+        assert alpha_variant.get("default_mode") == "default"
+
+        beta_variant = variants["joycaption-beta-one"]
+        assert (
+            beta_variant["huggingface_id"]
+            == "fancyfeast/llama-joycaption-beta-one-hf-llava"
+        )
+        assert (
+            beta_variant.get("description")
+            == "JoyCaption model (beta one version) for image captioning"
+        )
+        assert beta_variant.get("default_mode") == "default"
+
+    def test_model_modes_configuration(self):
+        """Test that JoyCaption model has correct modes configured."""
+        modes = JoyCaptionModel.get_modes()
+
+        assert "descriptive_formal" in modes
+        assert "descriptive_casual" in modes
+        assert "straightforward" in modes
+        assert "stable_diffusion" in modes
+        assert "danbooru" in modes
+        assert "e621" in modes
+        assert "default" in modes
+
+        assert (
+            modes["descriptive_formal"]
+            == "Generate a formal, detailed description of this image"
+        )
+        assert modes["default"] == "Describe this image."
+        stable_diffusion_mode = modes["stable_diffusion"]
+        if stable_diffusion_mode:
+            assert "stable diffusion prompt" in stable_diffusion_mode
+
+    def test_model_prompt_options_configuration(self):
+        """Test that JoyCaption model has correct prompt options configured."""
+        options = JoyCaptionModel.get_prompt_options()
+
+        assert "character_name" in options
+        assert "exclude_immutable" in options
+        assert "include_lighting" in options
+        assert "keep_pg" in options
+        assert "use_vulgar_language" in options
+
+        assert "{character_name}" in options["character_name"]
+        assert "Do NOT include anything sexual" in options["keep_pg"]
+        assert "fucking" in options["use_vulgar_language"]
+
+    def test_default_variant_is_beta_one(self):
+        """Test that default variant is joycaption-beta-one."""
+        assert JoyCaptionModel.DEFAULT_VARIANT == "joycaption-beta-one"
+
+    def test_model_inheritance(self):
+        """Test that JoyCaption model properly inherits from BaseModel."""
+        from captiv.models.base_model import BaseModel
+
+        assert issubclass(JoyCaptionModel, BaseModel)
+
+    def test_model_uses_llava_components(self):
+        """Test that JoyCaption model uses LLaVA components."""
+        assert JoyCaptionModel.MODEL is not None
+        assert JoyCaptionModel.PROCESSOR is not None
+
+        assert "Llava" in str(JoyCaptionModel.MODEL)
+        assert "Llava" in str(JoyCaptionModel.PROCESSOR)
+
+    def test_comprehensive_mode_coverage(self):
+        """Test that all expected modes are present and have reasonable content."""
+        modes = JoyCaptionModel.get_modes()
+
+        expected_modes = [
+            "descriptive_formal",
+            "descriptive_casual",
+            "straightforward",
+            "stable_diffusion",
+            "midjourney",
+            "danbooru",
+            "e621",
+            "rule34",
+            "booru",
+            "art_critic",
+            "product_listing",
+            "social_media",
+            "creative",
+            "technical",
+            "poetic",
+            "storytelling",
+            "emotional",
+            "humorous",
+            "seo_friendly",
+            "accessibility",
+            "concise",
+            "detailed",
+            "default",
+        ]
+
+        for mode in expected_modes:
+            assert mode in modes, f"Mode '{mode}' not found in JoyCaption modes"
+            mode_desc = modes[mode]
+            if mode_desc is not None:
+                assert isinstance(mode_desc, str), (
+                    f"Mode '{mode}' should have string description"
+                )
+                assert len(mode_desc) > 0, (
+                    f"Mode '{mode}' should have non-empty description"
+                )
+
+    def test_comprehensive_prompt_options_coverage(self):
+        """Test that all expected prompt options are present."""
+        options = JoyCaptionModel.get_prompt_options()
+
+        expected_options = [
+            "character_name",
+            "exclude_immutable",
+            "include_lighting",
+            "include_camera_angle",
+            "include_watermark",
+            "include_jpeg_artifacts",
+            "include_camera_details",
+            "keep_pg",
+            "exclude_resolution",
+            "include_quality",
+            "include_composition",
+            "exclude_text",
+            "include_depth_of_field",
+            "include_lighting_source",
+            "exclude_ambiguity",
+            "include_content_rating",
+            "focus_important_elements",
+            "exclude_artist_info",
+            "include_orientation",
+            "use_vulgar_language",
+            "use_blunt_phrasing",
+            "include_ages",
+            "include_shot_type",
+            "exclude_mood",
+            "include_vantage_height",
+            "mention_watermark",
+            "avoid_meta_phrases",
+        ]
+
+        for option in expected_options:
+            assert option in options, (
+                f"Prompt option '{option}' not found in JoyCaption options"
+            )
+            assert isinstance(options[option], str), (
+                f"Prompt option '{option}' should have string description"
+            )
+            assert len(options[option]) > 0, (
+                f"Prompt option '{option}' should have non-empty description"
+            )
+
+    def test_mode_content_quality(self):
+        """Test that mode content is appropriate and well-formed."""
+        modes = JoyCaptionModel.get_modes()
+
+        danbooru_mode = modes["danbooru"]
+        if danbooru_mode:
+            assert "comma-separated" in danbooru_mode
+            assert "Danbooru tags" in danbooru_mode
+
+        stable_diffusion_mode = modes["stable_diffusion"]
+        if stable_diffusion_mode:
+            assert "stable diffusion" in stable_diffusion_mode.lower()
+
+        art_critic_mode = modes["art_critic"]
+        if art_critic_mode:
+            assert (
+                "analyze" in art_critic_mode.lower()
+                or "analysis" in art_critic_mode.lower()
+            )
+
+    def test_prompt_option_variable_support(self):
+        """Test that character_name prompt option supports variables."""
+        from captiv.models.base_model import BaseModel
+
+        options = JoyCaptionModel.get_prompt_options()
+        character_option = options["character_name"]
+        assert "{character_name}" in character_option
+
+        mock_model = BaseModel.__new__(BaseModel)
+        variables = mock_model.extract_required_variables(character_option)
+        assert "character_name" in variables

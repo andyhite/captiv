@@ -1,0 +1,17 @@
+{
+  "status": "healthy",
+  "service": "captiv",
+  "version": "1.0",
+  "timestamp": "container-start",
+  "endpoints": {
+    "gui": "http://localhost:7860",
+    "jupyter": "http://localhost:8888/lab",
+    "health": "http://localhost:7860/health"
+  },
+  "services": {
+    "captiv": "running",
+    "nginx": "proxy-enabled",
+    "jupyter": "available",
+    "ssh": "enabled"
+  }
+}

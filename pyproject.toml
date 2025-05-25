@@ -1,19 +1,19 @@
 [tool.poetry]
 name = "captiv"
-version = "0.1.0"
+version = "0.1.2"
 description = "Image captioning tool with CLI and GUI interfaces"
 authors = ["Andy Hite <andy@andyhite.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/andyhite/captiv"
-packages = [{include = "captiv", from = "src"}]
+packages = [{ include = "captiv", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0.0"
 transformers = ">=4.51.3,<5.0.0"
 torch = ">=2.7.0,<3.0.0"
 Pillow = "^10.0.0"
-typer = {extras = ["all"], version = ">=0.9.0,<1.0.0"}
+typer = { extras = ["all"], version = ">=0.9.0,<1.0.0" }
 click = ">=8.1.7,<9.0.0"
 rich = ">=12.6.0,<13.0.0"
 typing-extensions = "^4.7.0"
@@ -26,6 +26,8 @@ uvicorn = ">=0.23.2,<0.24.0"
 jinja2 = ">=3.1.2,<4.0.0"
 loguru = "^0.7.2"
 psutil = "^5.9.0"
+requests = "^2.31.0"
+audioop-lts = { version = "^0.2.1", python = ">=3.13" }
 
 [tool.poetry.extras]
 joycaption = ["accelerate"]
@@ -40,6 +42,86 @@ pre-commit = "^3.5.0"
 pytest = "^8.0.0"
 watchdog = "*"
 watchfiles = "*"
+docformatter = "^1.7.7"
+
+[tool.autoflake]
+ignore-init-module-imports = true
+remove-all-unused-imports = true
+remove-unused-variables = true
+ignore-pass-statements = true
+ignore-unused-variable-names = ["_.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--tb=short"
+norecursedirs = [".*", "build", "dist", "*.egg"]
+filterwarnings = [
+    # Show warnings from our own code
+    "default::DeprecationWarning:captiv.*",
+    "default::FutureWarning:captiv.*",
+    "default::UserWarning:captiv.*",
+    # Suppress known third-party warnings
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::PendingDeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:gradio.*",
+    "ignore::UserWarning:gradio.*",
+    "ignore::UserWarning:torch.*",
+    "ignore::FutureWarning:transformers.*",
+    # Additional common third-party warnings
+    "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore::PendingDeprecationWarning:pkg_resources.*",
+    "ignore::UserWarning:huggingface_hub.*",
+    "ignore::FutureWarning:huggingface_hub.*",
+    # Additional ML/AI library warnings
+    "ignore::UserWarning:PIL.*",
+    "ignore::DeprecationWarning:numpy.*",
+    "ignore::FutureWarning:numpy.*",
+    "ignore::UserWarning:numpy.*",
+    "ignore::UserWarning:torchvision.*",
+    "ignore::DeprecationWarning:setuptools.*",
+    # Suppress multipart warnings from starlette/gradio dependencies
+    "ignore::PendingDeprecationWarning:.*multipart.*",
+]
+
+[tool.ruff]
+fix = true
+
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "migrations",
+    "build",
+    "dist",
+]
+
+line-length = 88
+target-version = "py312"
+respect-gitignore = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (includes unused imports)
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade (modern syntax)
+    "B",   # flake8-bugbear (code smells, best practices)
+    "C4",  # flake8-comprehensions (comprehension lint)
+    "SIM", # flake8-simplify (simplifications)
+    "N",   # pep8-naming
+    "A",   # flake8-builtins
+    "Q",   # flake8-quotes (quote consistency)
+]
+ignore = ["B008"]
+
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -10,5 +10,4 @@ from captiv.cli.commands.gui import launch
 
 app = typer.Typer(help="Launch the Gradio GUI")
 
-# Register commands
 app.command(name="launch")(launch.command)

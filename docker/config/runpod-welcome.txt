@@ -1,0 +1,19 @@
+=== Captiv Image Captioning Application ===
+
+Welcome to Captiv on RunPod!
+
+Available Commands:
+  captiv --help              # Show help
+  captiv model list          # List available models
+  captiv caption generate    # Generate captions
+  captiv gui launch          # Launch GUI from CLI
+
+Web Interfaces:
+  GUI: http://localhost:7860
+  Jupyter Lab: http://localhost:8888/lab
+
+Workspace: /workspace/captiv
+
+Documentation: https://github.com/andyhite/captiv
+
+Happy captioning! 🖼️✨

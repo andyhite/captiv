@@ -1,9 +1,6 @@
-"""
-Utility functions for the Captiv GUI.
-"""
+"""Utility functions for the Captiv GUI."""
 
 import os
-from typing import List
 
 
 def is_image_file(path: str) -> bool:
@@ -12,7 +9,7 @@ def is_image_file(path: str) -> bool:
     return any(path.lower().endswith(ext) for ext in valid_extensions)
 
 
-def get_subdirectories(directory: str) -> List[str]:
+def get_subdirectories(directory: str) -> list[str]:
     """Get subdirectories of the given directory."""
     try:
         return sorted(

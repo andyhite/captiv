@@ -1,0 +1,165 @@
+# Roo Rules for Captiv Project
+
+## Project Overview
+
+This is a Python project called "Captiv" that provides both CLI and GUI interfaces for image captioning using various AI models. The project is organized under `src/captiv/` with a clear modular structure.
+
+### Directory Structure
+
+- **CLI commands**: `src/captiv/cli/commands/` - Contains all CLI command implementations
+- **Config management**: `src/captiv/config/` - Configuration handling and defaults
+- **Models**: `src/captiv/models/` - AI model implementations (BLIP, BLIP2, JoyCaption, etc.)
+- **Services**: `src/captiv/services/` - Business logic and file management services
+- **GUI code**: `src/captiv/gui/` - Graphical user interface implementation
+- **Tests**: `tests/` - Test suite mirroring the source structure
+- **Utils**: `src/captiv/utils/` - Utility functions and error handling
+
+## Conventions
+
+### Code Style
+
+- Use **snake_case** for Python files, functions, and variables
+- Use **PascalCase** for class names
+- Use descriptive docstrings for all public functions and classes
+- Follow PEP 8 style guidelines
+- Use type hints where appropriate
+
+### File Organization
+
+- All new code should follow the existing directory structure
+- Tests should be placed in the corresponding `tests/` subdirectory
+- Test files are named `test_*.py`
+- Each module should have an `__init__.py` file
+- Keep related functionality grouped in appropriate modules
+
+### Import Organization
+
+- Standard library imports first
+- Third-party imports second
+- Local imports last
+- Use absolute imports from the `captiv` package
+
+## Key Files
+
+### Configuration Files
+
+- **`pyproject.toml`**: Project configuration, dependencies, and build settings
+- **`.pre-commit-config.yaml`**: Pre-commit hooks for code quality
+- **`.tool-versions`**: Tool version specifications
+- **`Makefile`**: Build and development commands
+
+### Documentation
+
+- **`README.md`**: Project documentation and usage instructions
+- **`TODO.md`**: Project roadmap and pending tasks
+
+### Entry Points
+
+- **`src/captiv/cli/__main__.py`**: CLI entry point
+- **`src/captiv/gui/__main__.py`**: GUI entry point
+
+## Testing
+
+### Framework and Structure
+
+- Use **pytest** for all tests
+- Test files are named `test_*.py`
+- Tests mirror the source structure under `tests/`
+- Use `conftest.py` files for shared test fixtures
+- Maintain high test coverage for critical functionality
+
+### Test Categories
+
+- **Unit tests**: Test individual functions and classes
+- **Integration tests**: Test component interactions
+- **CLI tests**: Test command-line interface functionality
+- **Service tests**: Test business logic and file operations
+
+## Memory Storage
+
+### Roo Memory System
+
+- **`.roo_memory.yaml`**: Persistent memory for Roo-specific notes at project root
+- Store key architectural decisions, patterns, and context
+- Include insights about model implementations and service interactions
+- Document any complex business logic or edge cases
+- Track important refactoring decisions and their rationale
+
+## Instructions for Roo
+
+### Before Starting Any Task
+
+1. **Always consult** `.roorules` and `.roo_memory.yaml` before analyzing the project
+2. **Review the specific module** you'll be working with to understand existing patterns
+3. **Check related tests** to understand expected behavior and edge cases
+4. **Consider impact** on both CLI and GUI interfaces when making changes
+
+### During Development
+
+1. **Follow existing patterns** in the codebase for consistency
+2. **Add appropriate tests** for any new functionality
+3. **Update docstrings** and type hints as needed
+4. **Consider error handling** and user experience
+5. **Test both CLI and GUI** if changes affect shared components
+
+### After Significant Changes
+
+1. **Update `.roo_memory.yaml`** with new insights, decisions, or architectural notes
+2. **Run the test suite** to ensure no regressions
+3. **Update documentation** if public interfaces change
+4. **Consider pre-commit hooks** and code quality checks
+
+### Before Completing Any Task
+
+1. **ALWAYS run `make lint`** to check for and fix linter errors
+2. **Check for type errors** using Pylance/mypy if available
+3. **Verify no syntax errors** exist in modified files
+4. **Ensure all imports are properly resolved**
+5. **Fix any remaining critical linting issues** (B904, A001, A004, etc.)
+6. **Only complete the task** when linter errors are minimized or resolved
+
+**Note**: This is a mandatory step - tasks should not be marked complete if there are easily fixable linter or type errors remaining.
+
+### Model-Specific Considerations
+
+- Each model in `src/captiv/models/` inherits from `BaseModel`
+- Models handle their own initialization, loading, and inference
+- Configuration for models is managed through the config system
+- Consider GPU memory management and model switching
+
+### Service Layer Patterns
+
+- Services handle business logic and file operations
+- Use dependency injection patterns where appropriate
+- Handle exceptions gracefully with proper error messages
+- Consider file system operations and cross-platform compatibility
+
+### CLI/GUI Coordination
+
+- Shared functionality should be in services, not in CLI/GUI specific code
+- CLI commands should be thin wrappers around service calls
+- GUI components should use the same services as CLI for consistency
+- Configuration should be shared between CLI and GUI
+
+## Common Patterns
+
+### Error Handling
+
+- Use custom exceptions from `src/captiv/services/exceptions.py`
+- Provide user-friendly error messages
+- Log errors appropriately for debugging
+- Handle file system errors gracefully
+
+### Configuration Management
+
+- Use the centralized config system in `src/captiv/config/`
+- Provide sensible defaults
+- Allow both CLI and GUI to modify configuration
+- Validate configuration values
+
+### File Operations
+
+- Use the file manager services for consistent file handling
+- Support various image formats
+- Handle caption file formats (.txt, .caption, etc.)
+- Consider batch operations for performance

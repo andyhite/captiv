@@ -1,10 +1,8 @@
-"""
-Enhanced error handling utilities for both CLI and GUI interfaces.
-"""
+"""Enhanced error handling utilities for both CLI and GUI interfaces."""
 
 import traceback
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from loguru import logger
 
@@ -12,28 +10,26 @@ from loguru import logger
 class ErrorCategory(str, Enum):
     """Categories of errors for better error handling and reporting."""
 
-    MODEL_LOADING = "model_loading"
-    IMAGE_PROCESSING = "image_processing"
     CAPTION_GENERATION = "caption_generation"
-    FILE_SYSTEM = "file_system"
     CONFIGURATION = "configuration"
-    RESOURCE = "resource"
+    FILE_SYSTEM = "file_system"
+    IMAGE_PROCESSING = "image_processing"
+    MODEL_LOADING = "model_loading"
     NETWORK = "network"
+    RESOURCE = "resource"
     UNKNOWN = "unknown"
 
 
 class EnhancedError(Exception):
-    """
-    Enhanced error class with additional context and troubleshooting information.
-    """
+    """Enhanced error class with additional context and troubleshooting information."""
 
     def __init__(
         self,
         message: str,
         category: ErrorCategory = ErrorCategory.UNKNOWN,
-        original_error: Optional[Exception] = None,
-        troubleshooting_tips: Optional[List[str]] = None,
-        context: Optional[Dict[str, Any]] = None,
+        original_error: Exception | None = None,
+        troubleshooting_tips: list[str] | None = None,
+        context: dict[str, Any] | None = None,
     ):
         """
         Initialize the enhanced error.
@@ -51,7 +47,6 @@ class EnhancedError(Exception):
         self.troubleshooting_tips = troubleshooting_tips or []
         self.context = context or {}
 
-        # Build the full error message
         full_message = f"{message}"
         if original_error:
             full_message += f" (Original error: {str(original_error)})"
@@ -107,9 +102,7 @@ class EnhancedError(Exception):
         log_func(self.get_detailed_message(include_traceback=True))
 
 
-# Dictionary mapping exception types to error categories and troubleshooting tips
-ERROR_MAPPING: Dict[Type[Exception], Dict[str, Any]] = {
-    # Model loading errors
+ERROR_MAPPING: dict[type[Exception], dict[str, Any]] = {
     ImportError: {
         "category": ErrorCategory.MODEL_LOADING,
         "tips": [
@@ -125,7 +118,6 @@ ERROR_MAPPING: Dict[Type[Exception], Dict[str, Any]] = {
             "Check if the module name is spelled correctly",
         ],
     },
-    # File system errors
     FileNotFoundError: {
         "category": ErrorCategory.FILE_SYSTEM,
         "tips": [
@@ -141,16 +133,14 @@ ERROR_MAPPING: Dict[Type[Exception], Dict[str, Any]] = {
             "Try running the command with elevated privileges",
         ],
     },
-    # Resource errors
     MemoryError: {
         "category": ErrorCategory.RESOURCE,
         "tips": [
             "Try using a smaller model or reducing batch size",
-            "Close other applications to free up memory",
+            "Try closing other applications to free up memory",
             "Consider using a machine with more RAM",
         ],
     },
-    # Network errors
     ConnectionError: {
         "category": ErrorCategory.NETWORK,
         "tips": [
@@ -162,7 +152,7 @@ ERROR_MAPPING: Dict[Type[Exception], Dict[str, Any]] = {
     TimeoutError: {
         "category": ErrorCategory.NETWORK,
         "tips": [
-            "The operation timed out, try again later",
+            "Try the operation again after waiting a moment",
             "Check your internet connection speed",
             "Consider increasing the timeout value if possible",
         ],
@@ -170,7 +160,7 @@ ERROR_MAPPING: Dict[Type[Exception], Dict[str, Any]] = {
 }
 
 
-def categorize_error(error: Exception) -> Dict[str, Any]:
+def categorize_error(error: Exception) -> dict[str, Any]:
     """
     Categorize an error and provide troubleshooting tips.
 
@@ -180,16 +170,13 @@ def categorize_error(error: Exception) -> Dict[str, Any]:
     Returns:
         A dictionary with category and troubleshooting tips
     """
-    # Check if the error type is directly in our mapping
     if type(error) in ERROR_MAPPING:
         return ERROR_MAPPING[type(error)]
 
-    # Check if any parent class of the error is in our mapping
     for error_type, mapping in ERROR_MAPPING.items():
         if isinstance(error, error_type):
             return mapping
 
-    # Default category and tips
     return {
         "category": ErrorCategory.UNKNOWN,
         "tips": [
@@ -202,8 +189,8 @@ def categorize_error(error: Exception) -> Dict[str, Any]:
 
 def create_enhanced_error(
     error: Exception,
-    message: Optional[str] = None,
-    context: Optional[Dict[str, Any]] = None,
+    message: str | None = None,
+    context: dict[str, Any] | None = None,
 ) -> EnhancedError:
     """
     Create an enhanced error from a standard exception.
@@ -244,17 +231,13 @@ def handle_errors(func):
         try:
             return func(*args, **kwargs)
         except EnhancedError:
-            # If it's already an EnhancedError, just re-raise it
             raise
         except Exception as e:
-            # Get the function name for context
             func_name = getattr(func, "__name__", "unknown_function")
 
-            # Create and log the enhanced error
             enhanced_error = create_enhanced_error(e, context={"function": func_name})
             enhanced_error.log_error()
 
-            # Re-raise the enhanced error
-            raise enhanced_error
+            raise enhanced_error from None
 
     return wrapper

@@ -1,40 +1,39 @@
-"""
-Gallery section for the Captiv GUI.
-"""
+"""Gallery section for the Captiv GUI."""
 
 import os
-import traceback  # Add this import
-from typing import List, Tuple
+import traceback
+from pathlib import Path
 
 import gradio as gr
-from loguru import logger  # Add this import
+from loguru import logger
 
 from captiv.gui.utils import is_image_file
-from captiv.services.image_file_manager import ImageFileManager
+from captiv.services import CaptionFileManager
 
 
 class GallerySection:
     """Gallery section for displaying and selecting images."""
 
-    def __init__(self, file_manager: ImageFileManager):
-        """Initialize the gallery section.
+    def __init__(self, caption_manager: CaptionFileManager):
+        """
+        Initialize the gallery section.
 
         Args:
-            file_manager: The image file manager instance
+            caption_manager: The caption file manager instance
         """
-        self.file_manager = file_manager
+        self.caption_manager = caption_manager
         self.current_directory = str(os.path.expanduser("~"))
         logger.info(
-            f"GallerySection initialized with default directory: {self.current_directory}"
+            f"GallerySection initialized with default directory: {self.current_directory}"  # noqa: E501
         )
         self.current_image = None
 
-        # UI components
         self.gallery = None
         self.selected_image = None
 
-    def create_section(self) -> Tuple[gr.Gallery, gr.State]:
-        """Create the gallery section UI components.
+    def create_section(self) -> tuple[gr.Gallery, gr.State]:
+        """
+        Create the gallery section UI components.
 
         Returns:
             Tuple containing the gallery and selected image state
@@ -55,7 +54,8 @@ class GallerySection:
 
     def on_gallery_select(self, evt: gr.SelectData) -> str:
         logger.debug(f"Gallery selection event triggered: {evt}")
-        """Handle gallery selection event.
+        """
+        Handle gallery selection event.
 
         Args:
             evt: The selection event data
@@ -69,17 +69,14 @@ class GallerySection:
 
         try:
             logger.debug(f"Processing gallery select event: {evt}")
-            # Extract image path based on the event structure
             image_path = ""
             index = -1
 
-            # Get index from event
             if hasattr(evt, "index") and isinstance(evt.index, int):
                 index = evt.index
             elif hasattr(evt, "value") and isinstance(evt.value, int):
                 index = evt.value
 
-            # Get direct path if available
             if hasattr(evt, "value"):
                 if isinstance(evt.value, str):
                     image_path = evt.value
@@ -90,32 +87,28 @@ class GallerySection:
                 ):
                     image_path = evt.value["image"]["path"]
 
-            # If we have an index but no path, get the path from the index
             if not image_path and index >= 0:
-                images_with_captions = self.file_manager.list_images_with_captions(
-                    self.current_directory
+                images_with_captions = self.caption_manager.list_images_and_captions(
+                    Path(self.current_directory)
                 )
                 if images_with_captions and 0 <= index < len(images_with_captions):
                     image_name, _ = images_with_captions[index]
                     image_path = os.path.join(self.current_directory, image_name)
 
-            # Validate the image path
             if (
                 not image_path
                 or not os.path.exists(image_path)
                 or os.path.isdir(image_path)
             ):
                 logger.warning(
-                    f"Invalid image path determined from gallery selection: '{image_path}'"
+                    f"Invalid image path determined from gallery selection: '{image_path}'"  # noqa: E501
                 )
                 return ""
 
-            # Check if it's an image file
             if not is_image_file(image_path):
                 logger.warning(f"Selected file is not a valid image: '{image_path}'")
                 return ""
 
-            # Store the current image and return the path
             self.current_image = os.path.abspath(image_path)
             logger.info(f"Image selected from gallery: {self.current_image}")
             return self.current_image
@@ -125,8 +118,9 @@ class GallerySection:
             logger.debug(traceback.format_exc())
             return ""
 
-    def get_gallery_images(self, directory: str) -> List[str]:
-        """Get images for the gallery.
+    def get_gallery_images(self, directory: str) -> list[str]:
+        """
+        Get images for the gallery.
 
         Args:
             directory: The directory to get images from
@@ -136,8 +130,8 @@ class GallerySection:
         """
         logger.debug(f"Attempting to get gallery images for directory: {directory}")
         try:
-            images_with_captions = self.file_manager.list_images_with_captions(
-                directory
+            images_with_captions = self.caption_manager.list_images_and_captions(
+                Path(directory)
             )
             image_paths = [
                 os.path.join(directory, image_name)
@@ -155,7 +149,8 @@ class GallerySection:
             return []
 
     def set_current_directory(self, directory: str) -> None:
-        """Set the current directory.
+        """
+        Set the current directory.
 
         Args:
             directory: The new current directory

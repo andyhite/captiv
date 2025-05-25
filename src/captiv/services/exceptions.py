@@ -1,8 +1,8 @@
 """
 Custom exceptions for the captiv service layer.
 
-This module defines a hierarchy of exceptions used throughout the application
-to provide clear error messages and enable proper error handling.
+This module defines a hierarchy of exceptions used throughout the application to provide
+clear error messages and enable proper error handling.
 """
 
 
@@ -18,7 +18,7 @@ class DirectoryNotFoundError(FileOperationError):
     """Exception raised when a directory is not found."""
 
 
-class FileNotFoundError(FileOperationError):
+class CaptivFileNotFoundError(FileOperationError):
     """Exception raised when a file is not found."""
 
 
@@ -35,7 +35,7 @@ class ModelConfigurationError(ModelError):
 
 
 class InvalidModelTypeError(ModelError):
-    """Exception raised when an invalid model type is specified."""
+    """Exception raised when an invalid model is specified."""
 
 
 class InvalidModelVariantError(ModelError):
@@ -48,3 +48,7 @@ class InvalidModelModeError(ModelError):
 
 class CaptionError(CaptivServiceError):
     """Exception raised for caption-related errors."""
+
+
+class RunPodError(CaptivServiceError):
+    """Exception raised for RunPod-related errors."""

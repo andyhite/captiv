@@ -1,1 +1,1 @@
-# GUI tests package
+"""Tests for the Captiv GUI modules."""

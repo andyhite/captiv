@@ -1,12 +1,13 @@
 """
 Enhanced error handling utilities for the Captiv CLI.
 
-This module provides decorators and context managers for standardized error handling
-in CLI commands, with improved error messages and troubleshooting tips.
+This module provides decorators and context managers for standardized error handling in
+CLI commands, with improved error messages and troubleshooting tips.
 """
 
 import functools
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import typer
 from loguru import logger
@@ -36,53 +37,47 @@ def handle_cli_errors(func: Callable[..., T]) -> Callable[..., T]:
         try:
             return func(*args, **kwargs)
         except EnhancedError as e:
-            # Get the command name from the function name or module
             command_name = func.__name__
             if command_name == "command":
                 command_name = func.__module__.split(".")[-1]
 
-            # Format the error message with troubleshooting tips
             typer.echo(f"Error in {command_name}: {e.message}", err=True)
 
-            # Add context information if available
             if e.context:
                 typer.echo("\nContext:", err=True)
                 for key, value in e.context.items():
                     typer.echo(f"  {key}: {value}", err=True)
 
-            # Add troubleshooting tips if available
             if e.troubleshooting_tips:
                 typer.echo("\nTroubleshooting tips:", err=True)
                 for i, tip in enumerate(e.troubleshooting_tips, 1):
                     typer.echo(f"  {i}. {tip}", err=True)
 
-            # Log the full error with traceback
             logger.error(e.get_detailed_message(include_traceback=True))
 
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
+
+        except KeyboardInterrupt:
+            typer.echo("\nOperation cancelled by user.", err=True)
+            raise typer.Exit(1) from None
 
         except Exception as e:
-            # Get the command name from the function name or module
             command_name = func.__name__
             if command_name == "command":
                 command_name = func.__module__.split(".")[-1]
 
-            # Create an enhanced error with troubleshooting tips
             enhanced_error = create_enhanced_error(e, context={"command": command_name})
 
-            # Format the error message with troubleshooting tips
             typer.echo(f"Error in {command_name}: {enhanced_error.message}", err=True)
 
-            # Add troubleshooting tips if available
             if enhanced_error.troubleshooting_tips:
                 typer.echo("\nTroubleshooting tips:", err=True)
                 for i, tip in enumerate(enhanced_error.troubleshooting_tips, 1):
                     typer.echo(f"  {i}. {tip}", err=True)
 
-            # Log the full error with traceback
             logger.error(enhanced_error.get_detailed_message(include_traceback=True))
 
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     return wrapper
 

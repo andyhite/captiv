@@ -1,3 +1,1 @@
-"""
-Caption commands for the Captiv CLI.
-"""
+"""Caption commands for the Captiv CLI."""

@@ -1,0 +1,92 @@
+# Roo Memory for Captiv Project
+# This file stores key decisions, architectural notes, and context for future Roo tasks
+
+## Project Initialization
+created_date: "2025-01-23"
+initial_setup: "Created .roorules file with comprehensive project guidelines"
+
+## Architectural Insights
+architecture:
+  - "Project follows clean architecture with clear separation between CLI, GUI, and services"
+  - "Service layer acts as the business logic layer, shared between CLI and GUI"
+  - "Models are abstracted through BaseModel interface for consistent behavior"
+  - "Configuration system is centralized and shared across all components"
+
+## Key Patterns Observed
+patterns:
+  - "CLI commands are thin wrappers around service calls"
+  - "Tests mirror the source structure under tests/ directory"
+  - "Each module has proper __init__.py files for package structure"
+  - "Error handling uses custom exceptions from services/exceptions.py"
+
+## Model System Notes
+models:
+  - "Multiple AI models supported: BLIP, BLIP2, JoyCaption, Kosmos, ViT-GPT2"
+  - "All models inherit from BaseModel for consistent interface"
+  - "Model switching and GPU memory management are key considerations"
+
+## Service Layer Insights
+services:
+  - "CaptionFileManager: Handles caption file operations"
+  - "ConfigManager: Centralized configuration management"
+  - "FileManager: General file operations"
+  - "ImageFileManager: Image-specific file handling"
+  - "ModelManager: Model lifecycle management"
+
+## Testing Strategy
+testing:
+  - "Uses pytest framework with conftest.py for shared fixtures"
+  - "Test categories: unit, integration, CLI, and service tests"
+  - "High test coverage maintained for critical functionality"
+
+## Development Workflow
+workflow:
+  - "Pre-commit hooks ensure code quality"
+  - "Makefile provides build and development commands"
+  - "Tool versions managed through .tool-versions file"
+
+## Future Considerations
+notes:
+  - "Always consider impact on both CLI and GUI when making changes"
+  - "GPU memory management is crucial for model operations"
+  - "File system operations must be cross-platform compatible"
+  - "Error messages should be user-friendly across all interfaces"
+
+## RunPod Integration
+runpod_integration:
+  - "Added RunPodService for managing remote GPU instances"
+  - "Integrated RunPod support into BaseModel for universal compatibility"
+  - "Implemented CLI commands for RunPod management (create, status, stop, terminate)"
+  - "Added FastAPI server for remote inference endpoints"
+  - "Updated Docker configuration for RunPod deployment"
+  - "Added RunPod configuration defaults and validation"
+  - "Added --runpod flag to CLI generate and GUI launch commands"
+
+## Key Implementation Details
+implementation_notes:
+  - "RunPod service uses GraphQL API for pod management"
+  - "All models now support RunPod via --runpod flag (universal support)"
+  - "ModelManager injects RunPod functionality via method override"
+  - "Model automatically falls back to local inference if RunPod fails"
+  - "API server provides /api/caption endpoint for remote inference"
+  - "Configuration supports auto-create and auto-terminate options"
+  - "Health checks ensure pod readiness before inference"
+  - "Type annotations and error handling throughout RunPod integration"
+  - "Clean architecture: BaseModel has no RunPod dependencies"
+  - "RunPod service instantiated only in ModelManager when needed"
+
+## Architecture Changes
+architecture_changes:
+  - "Removed RunPod functionality from BaseModel to keep models focused"
+  - "Moved RunPod integration to ModelManager (service layer)"
+  - "ModelManager now handles RunPod service instantiation and management"
+  - "Models remain pure - no RunPod imports or dependencies"
+  - "RunPod functionality injected via method override pattern"
+  - "Modified GUI sections to support RunPod flag"
+  - "Removed JoyCaptionRunPodModel in favor of universal approach"
+  - "Updated documentation to reflect universal RunPod support"
+  - "Clean separation: Models handle inference, ModelManager handles infrastructure"
+
+## Last Updated
+last_modified: "2025-01-24"
+last_task: "Final architecture: Moved RunPod to ModelManager, clean separation of concerns"
